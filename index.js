@@ -36,6 +36,14 @@ async function run() {
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
       res.send({ result, token });
     });
+
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
   } finally {
   }
 }
