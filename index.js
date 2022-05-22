@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.port || 5000;
 
@@ -22,6 +23,19 @@ async function run() {
     console.log("DB connected");
     const productCollection = client.db("SpadexTools").collection("products");
     const userCollection = client.db("SpadexTools").collection("users");
+
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
+      res.send({ result, token });
+    });
   } finally {
   }
 }
