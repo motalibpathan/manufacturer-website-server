@@ -80,6 +80,16 @@ async function run() {
       res.send({ result, token });
     });
 
+    app.put("/user/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
