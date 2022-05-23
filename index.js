@@ -55,9 +55,15 @@ async function run() {
       const result = await productCollection.find({}).toArray();
       res.send(result);
     });
+
     app.post("/product", verifyJWT, verifyAdmin, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
+      res.send(result);
+    });
+
+    app.get("/user", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find({}).toArray();
       res.send(result);
     });
 
