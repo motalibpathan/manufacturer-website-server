@@ -23,7 +23,7 @@ function verifyJWT(req, res, next) {
     return res.send(401).send({ message: "Unauthorized access" });
   }
   const token = authHeader.split(" ")[1];
-  jwt.verify(token, ACCESS_TOKEN_SECRET, function (err, decoded) {
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
     if (err) {
       return res.status(403).send({ message: "Forbidden access" });
     }
@@ -39,7 +39,19 @@ async function run() {
     const productCollection = client.db("SpadexTools").collection("products");
     const userCollection = client.db("SpadexTools").collection("users");
 
-    app.post("/product", async (req, res) => {
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        res.status(403).send({ message: "Forbidden" });
+      }
+    };
+
+    app.post("/product", verifyJWT, verifyAdmin, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
