@@ -51,8 +51,15 @@ async function run() {
       }
     };
 
-    app.get("/product", verifyJWT, verifyAdmin, async (req, res) => {
+    app.get("/product", async (req, res) => {
       const result = await productCollection.find({}).toArray();
+      res.send(result);
+    });
+
+    app.get("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productCollection.findOne({ query });
       res.send(result);
     });
 
@@ -83,6 +90,7 @@ async function run() {
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
+      console.log(user);
       const filter = { email: email };
       const options = { upsert: true };
       const updateDoc = {
@@ -91,6 +99,17 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc, options);
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
       res.send({ result, token });
+    });
+
+    app.patch("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const userInfo = req.body;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: userInfo,
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
     });
 
     app.put("/user/admin/:email", async (req, res) => {
