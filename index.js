@@ -148,6 +148,11 @@ async function run() {
 
       res.send(orderInsert);
     });
+
+    app.get("/order", async (req, res) => {
+      const result = await orderCollection.find({}).toArray();
+      res.send(result);
+    });
   } finally {
   }
 }
