@@ -149,8 +149,14 @@ async function run() {
       res.send(orderInsert);
     });
 
-    app.get("/order", async (req, res) => {
+    app.get("/order", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await orderCollection.find({}).toArray();
+      res.send(result);
+    });
+    app.get("/order/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const result = await orderCollection.find(filter).toArray();
       res.send(result);
     });
   } finally {
