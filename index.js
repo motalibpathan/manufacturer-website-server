@@ -153,11 +153,35 @@ async function run() {
       const result = await orderCollection.find({}).toArray();
       res.send(result);
     });
+
     app.get("/order/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
       const result = await orderCollection.find(filter).toArray();
       res.send(result);
+    });
+    app.delete("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const { orderQuantity, productId } = req.body;
+
+      const filter = { _id: ObjectId(id) };
+      const deleteResult = await orderCollection.deleteOne(filter);
+      console.log(deleteResult);
+
+      // find product and update quantity
+      if (deleteResult.deletedCount > 0) {
+        const query = { _id: ObjectId(productId) };
+        const product = await productCollection.findOne(query);
+
+        const newQuantity =
+          parseInt(product.quantity) + parseInt(orderQuantity);
+
+        const result = await productCollection.updateOne(query, {
+          $set: { quantity: newQuantity },
+        });
+      }
+
+      res.send(deleteResult);
     });
   } finally {
   }
