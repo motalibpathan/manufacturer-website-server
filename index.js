@@ -3,6 +3,8 @@ const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const port = process.env.port || 5000;
 
 const app = express();
@@ -39,6 +41,7 @@ async function run() {
     const productCollection = client.db("SpadexTools").collection("products");
     const userCollection = client.db("SpadexTools").collection("users");
     const orderCollection = client.db("SpadexTools").collection("orders");
+    const paymentCollection = client.db("SpadexTools").collection("payments");
 
     const verifyAdmin = async (req, res, next) => {
       const requester = req.decoded.email;
@@ -51,6 +54,18 @@ async function run() {
         res.status(403).send({ message: "Forbidden" });
       }
     };
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const order = req.body;
+      const price = order.price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
 
     app.get("/product", async (req, res) => {
       const result = await productCollection.find({}).toArray();
@@ -131,6 +146,24 @@ async function run() {
       res.send({ admin: isAdmin });
     });
 
+    app.get("/order", verifyJWT, async (req, res) => {
+      const email = req.decoded.email;
+      let query = {};
+      if (email) {
+        query = { email: email };
+      }
+      const result = await orderCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/order/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = { _id: ObjectId(id) };
+      const result = await orderCollection.findOne(filter);
+      res.send(result);
+    });
+
     app.post("/order", verifyJWT, async (req, res) => {
       const orderInfo = req.body;
       const productId = orderInfo.productId;
@@ -149,17 +182,27 @@ async function run() {
       res.send(orderInsert);
     });
 
-    app.get("/order", verifyJWT, verifyAdmin, async (req, res) => {
-      const result = await orderCollection.find({}).toArray();
-      res.send(result);
+    app.patch("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      console.log(payment);
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "pending",
+          transactionId: payment.transactionId,
+        },
+      };
+
+      const result = await paymentCollection.insertOne(payment);
+      const updatedBooking = await orderCollection.updateOne(
+        filter,
+        updatedDoc
+      );
+
+      res.send(updatedBooking);
     });
 
-    app.get("/order/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email;
-      const filter = { email: email };
-      const result = await orderCollection.find(filter).toArray();
-      res.send(result);
-    });
     app.delete("/order/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const { orderQuantity, productId } = req.body;
