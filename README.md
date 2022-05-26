@@ -10,7 +10,7 @@ Live server Link: [https://spadex-tools.herokuapp.com/](https://spadex-tools.her
 - Create, delete, update order status, get all order and get orders by specific email and id
 - Add a review and get all reviews and Stripe payment processing
 
-## Features and Functionality.
+## Technology used.
 
 - Node.js, Express.js
 - Mongodb
