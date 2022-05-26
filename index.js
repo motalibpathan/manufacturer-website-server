@@ -69,7 +69,13 @@ async function run() {
     });
 
     app.get("/product", async (req, res) => {
-      const result = await productCollection.find({}).toArray();
+      const size = parseInt(req.query.size);
+      let result;
+      if (size) {
+        result = await productCollection.find({}).limit(size).toArray();
+      } else {
+        result = await productCollection.find({}).toArray();
+      }
       res.send(result);
     });
 
