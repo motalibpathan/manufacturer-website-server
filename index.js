@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.send(401).send({ message: "Unauthorized access" });
+    return res.status(401).send({ message: "Unauthorized access" });
   }
   const token = authHeader.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
@@ -42,6 +42,7 @@ async function run() {
     const userCollection = client.db("SpadexTools").collection("users");
     const orderCollection = client.db("SpadexTools").collection("orders");
     const paymentCollection = client.db("SpadexTools").collection("payments");
+    const reviewCollection = client.db("SpadexTools").collection("reviews");
 
     const verifyAdmin = async (req, res, next) => {
       const requester = req.decoded.email;
@@ -147,7 +148,7 @@ async function run() {
     });
 
     app.get("/order", verifyJWT, async (req, res) => {
-      const email = req.decoded.email;
+      const email = req.query.email;
       let query = {};
       if (email) {
         query = { email: email };
@@ -185,7 +186,7 @@ async function run() {
     app.patch("/order/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const payment = req.body;
-      console.log(payment);
+
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
         $set: {
@@ -201,6 +202,18 @@ async function run() {
       );
 
       res.send(updatedBooking);
+    });
+
+    app.patch("/updateOrder/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "approved",
+        },
+      };
+      const result = await orderCollection.updateOne(filter, updatedDoc);
+      res.send(result);
     });
 
     app.delete("/order/:id", verifyJWT, async (req, res) => {
@@ -225,6 +238,17 @@ async function run() {
       }
 
       res.send(deleteResult);
+    });
+
+    app.get("/review", async (req, res) => {
+      const result = await reviewCollection.find({}).toArray();
+      res.send(result);
+    });
+
+    app.post("/review", verifyJWT, async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result);
     });
   } finally {
   }
